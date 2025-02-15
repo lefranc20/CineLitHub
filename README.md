@@ -1,0 +1,2 @@
+# CineLitHub
+API para mídias.
