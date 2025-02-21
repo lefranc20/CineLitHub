@@ -14,6 +14,12 @@ app.use(express.json()); // permite que dados em JSON sejam aceitos no req.body
 
 app.use("/api/filmes", filmeRoutes);
 
+// Para retornar algo demonstrando que a API esta de pé
+app.get("/", (req, res) => {
+    res.send("API do CineLitHub está funcionando! 🚀");
+});
+
+
 app.listen(PORT, () =>  {
     connectDB();
     console.log("Servidor iniciado em http://localhost:" + PORT);
