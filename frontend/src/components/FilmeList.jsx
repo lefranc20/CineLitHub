@@ -1,17 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import api from "../api/api.js";
 import { FiMoreVertical } from "react-icons/fi"; // Ícone de 3 pontinhos
 import AddFilmeModal from "./AddFilmeModal";
+import EditFilmeModal from "./EditFilmeModal"; // Importando o novo modal de edição
 
 const FilmeList = () => {
   const [filmes, setFilmes] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false); // Estado para o modal de edição
+  const [filmeEditando, setFilmeEditando] = useState(null); // Filme que será editado
   const [menuAberto, setMenuAberto] = useState(null);
+
+  const menuRef = useRef(null); // Referência para o menu de opções
 
   const buscarFilmes = async () => {
     try {
       const response = await api.get("/");
-      console.log("Filmes recebidos:", response.data);
       setFilmes(response.data.data);
     } catch (error) {
       console.error("Erro ao buscar filmes", error);
@@ -22,13 +26,32 @@ const FilmeList = () => {
     buscarFilmes();
   }, []);
 
+  // Fechar o menu se o usuário clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuAberto(null); // Fecha o menu
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, []);
+
   const deletarFilme = async (id) => {
     try {
-      await api.delete(`/filmes/${id}`);
+      await api.delete(`/${id}`);
       buscarFilmes();
     } catch (error) {
       console.error("Erro ao deletar filme", error);
     }
+  };
+
+  const editarFilme = (filme) => {
+    setFilmeEditando(filme); // Armazena o filme a ser editado
+    setShowEditModal(true); // Exibe o modal de edição
   };
 
   return (
@@ -43,11 +66,35 @@ const FilmeList = () => {
               <h3>{filme.nome}</h3>
               <p><strong>Ano:</strong> {filme.ano}</p>
               <p><strong>Gênero:</strong> {filme.genero}</p>
-              <FiMoreVertical onClick={() => setMenuAberto(menuAberto === filme._id ? null : filme._id)} style={{ cursor: "pointer", position: "absolute", top: 10, right: 10 }} />
+              <FiMoreVertical
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuAberto(menuAberto === filme._id ? null : filme._id);
+                }} 
+                style={{
+                  cursor: "pointer",
+                  position: "absolute",
+                  top: "10px",
+                  right: "10px",
+                  fontSize: "24px", // Ícone menor
+                  color: "#333" // Cor mais suave
+                }} 
+              />
               {menuAberto === filme._id && (
-                <div style={{ position: "absolute", top: 30, right: 10, background: "white", border: "1px solid #ccc", borderRadius: "5px", padding: "5px" }}>
+                <div 
+                  ref={menuRef}
+                  style={{
+                    position: "absolute",
+                    top: 30,
+                    right: 10,
+                    background: "white",
+                    border: "1px solid #ccc",
+                    borderRadius: "5px",
+                    padding: "5px"
+                  }}
+                >
                   <button onClick={() => deletarFilme(filme._id)}>Remover</button>
-                  <button>Editar</button>
+                  <button onClick={() => editarFilme(filme)}>Editar</button>
                 </div>
               )}
             </div>
@@ -58,6 +105,14 @@ const FilmeList = () => {
       )}
 
       {showModal && <AddFilmeModal fecharModal={() => setShowModal(false)} atualizarFilmes={buscarFilmes} />}
+      
+      {showEditModal && (
+        <EditFilmeModal 
+          fecharModal={() => setShowEditModal(false)} 
+          atualizarFilmes={buscarFilmes}
+          filme={filmeEditando} // Passando o filme a ser editado
+        />
+      )}
     </div>
   );
 };
